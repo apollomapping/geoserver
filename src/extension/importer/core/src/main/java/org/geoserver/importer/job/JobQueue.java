@@ -5,8 +5,6 @@
  */
 package org.geoserver.importer.job;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,12 +18,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.geoserver.importer.ImportContext;
-import org.geoserver.importer.Importer;
-import org.geoserver.platform.GeoServerExtensions;
-import org.geoserver.util.IOUtils;
 import org.geotools.util.logging.Logging;
 
 public class JobQueue {
@@ -73,38 +66,12 @@ public class JobQueue {
                         List<Long> toremove = new ArrayList<Long>();
                         for (Map.Entry<Long, Task<?>> e : jobs.entrySet()) {
                             if (e.getValue().isCancelled()
-                                    || (e.getValue()
-                                            .isDone() /* AF: This condition is never verified ?!? && e.getValue().isRecieved() */)) {
-                                try {
-                                    ImportContext context = (ImportContext) e.getValue().get();
-
-                                    if (context.getState() == ImportContext.State.COMPLETE
-                                            && context.isEmpty()) {
-                                        context.unlockUploadFolder(context.getUploadDirectory());
-                                        toremove.add(e.getKey());
-                                    }
-                                } catch (Exception ex) {
-                                    LOGGER.log(Level.INFO, ex.getMessage(), ex);
-                                }
+                                    || (e.getValue().isDone() && e.getValue().isRecieved())) {
+                                toremove.add(e.getKey());
                             }
                         }
                         for (Long l : toremove) {
                             jobs.remove(l);
-                        }
-
-                        final Importer importer = GeoServerExtensions.bean(Importer.class);
-                        for (File f : importer.getUploadRoot().listFiles()) {
-                            if (f.isDirectory() && !(new File(f, ".locking")).exists()) {
-                                try {
-                                    IOUtils.delete(f);
-                                } catch (IOException e) {
-                                    LOGGER.log(
-                                            Level.WARNING,
-                                            "It was not possible to cleanup Importer temporary folder "
-                                                    + f,
-                                            e);
-                                }
-                            }
                         }
                     }
                 },
