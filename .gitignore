@@ -23,3 +23,10 @@ data/citensg-1.0/gwc/cite*
 data/citensg-1.0/gwc/geowebcache_*.bak
 data/citensg-1.0/legendsamples/
 data/citensg-1.0/logs/geoserver.log
+data/citensg-1.0/workspaces/sf/sf/EntitéGénérique/featuretype.xml
+data/citensg-1.0/workspaces/sf/sf/EntitéGénérique/layer.xml
+data/citewfs-1.1/workspaces/sf/sf/EntitéGénérique/featuretype.xml
+data/citewfs-1.1/workspaces/sf/sf/EntitéGénérique/layer.xml
+data/citewfs-1.1/workspaces/sf/sf/EntitéGénérique/schema.xsd
+data/citewfs-2.0/workspaces/sf/sf/EntitéGénérique/featuretype.xml
+data/citewfs-2.0/workspaces/sf/sf/EntitéGénérique/layer.xml

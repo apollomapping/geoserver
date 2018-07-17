@@ -193,6 +193,35 @@ public class KMLFileFormatTest extends TestCase {
         assertEquals("morx", feature.getAttribute("quux"));
     }
 
+    public void testUnclosedPolygon() throws Exception {
+        String kmlInput =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                        + "<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\">\n"
+                        + "    <Document id=\"feat_4\">\n"
+                        + "        <Placemark id=\"feat_5\">\n"
+                        + "            <name>AOI</name>\n"
+                        + "            <Polygon id=\"geom_2\">\n"
+                        + "                <outerBoundaryIs>\n"
+                        + "                    <LinearRing id=\"geom_3\">\n"
+                        + "                        <coordinates>-88.9453125,40.4469470596,0.0 -87.890625,40.4469470596,0.0 -87.890625,39.9097362345,0.0 -88.9453125,39.9097362345,0.0</coordinates>\n"
+                        + "                    </LinearRing>\n"
+                        + "                </outerBoundaryIs>\n"
+                        + "            </Polygon>\n"
+                        + "        </Placemark>\n"
+                        + "    </Document>\n"
+                        + "</kml>\n";
+
+        List<SimpleFeatureType> featureTypes =
+                kmlFileFormat.parseFeatureTypes(
+                        "typed-and-untyped", IOUtils.toInputStream(kmlInput));
+        assertEquals("Unexpected number of feature types", 1, featureTypes.size());
+        SimpleFeatureType featureType = featureTypes.get(0);
+        FeatureReader<SimpleFeatureType, SimpleFeature> reader =
+                kmlFileFormat.read(featureType, IOUtils.toInputStream(kmlInput));
+        SimpleFeature feature = reader.next();
+        assertNotNull("Expecting feature", feature);
+    }
+
     public void testReadCustomSchema() throws Exception {
         String kmlInput =
                 DOC_EL

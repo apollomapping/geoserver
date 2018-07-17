@@ -84,6 +84,18 @@
        <enabled>true</enabled>
      </releases>
     </repository>
+
+   <repository>
+      <id>apollo-central</id>
+      <name>apollomapping central</name>
+      <url>http://build.apollomapping.com:8081/artifactory/apollo-central/</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+     <releases>
+       <enabled>true</enabled>
+     </releases>
+    </repository>
  </repositories>
 
  <dependencyManagement>
@@ -1873,7 +1885,7 @@
 
  <properties>
   <gs.version>2.14-SNAPSHOT</gs.version>
-  <gt.version>20-SNAPSHOT</gt.version>
+  <gt.version>20-FORK-SNAPSHOT</gt.version>
   <gwc.version>1.14-SNAPSHOT</gwc.version>
   <spring.version>4.3.18.RELEASE</spring.version>
   <spring.security.version>4.2.7.RELEASE</spring.security.version>
