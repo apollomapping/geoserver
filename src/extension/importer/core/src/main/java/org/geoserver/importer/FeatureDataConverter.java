@@ -5,29 +5,31 @@
  */
 package org.geoserver.importer;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.Charset;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.geotools.data.FeatureReader;
+import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.AttributeTypeBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+import org.geotools.filter.IllegalFilterException;
+import org.geotools.filter.LengthFunction;
 import org.geotools.util.logging.Logging;
 import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.GeometryDescriptor;
+import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory;
+import org.opengis.filter.expression.Expression;
+
+import java.io.*;
+import java.lang.reflect.Field;
+import java.nio.charset.Charset;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Converts feature between two feature data sources.
@@ -87,10 +89,55 @@ public class FeatureDataConverter {
         AttributeTypeBuilder attBuilder = new AttributeTypeBuilder();
         for (AttributeDescriptor att : featureType.getAttributeDescriptors()) {
             attBuilder.init(att);
+
+            // Apollo modification, override the default shape file string size limits
+            // used for column creation for ourselves
+            if (att.getType().getBinding().equals(String.class)) {
+                hackFixStringLengthRestriction(attBuilder);
+            }
+
             typeBuilder.add(attBuilder.buildDescriptor(convertAttributeName(att.getLocalName())));
         }
 
         return typeBuilder.buildFeatureType();
+    }
+
+    private void hackFixStringLengthRestriction(AttributeTypeBuilder attBuilder) {
+        try {
+            // not sure if we need to still bring over the other restrictions but
+            // for strings its not like anything besides length restrictions are used
+            List<Filter> newRestrictions = new ArrayList<>();
+            newRestrictions.add(lengthRestriction(10000));
+
+            Field restrictionsField = attBuilder.getClass().getDeclaredField("restrictions");
+            restrictionsField.setAccessible(true);
+            restrictionsField.set(attBuilder, newRestrictions);
+        } catch (Exception e) {
+            LOGGER.warning("Unable to override string limit restriction: " + e.getMessage());
+            LOGGER.warning(ExceptionUtils.getStackTrace(e));
+        }
+    }
+
+    protected Filter lengthRestriction(int length) {
+        FilterFactory filterFactory = CommonFactoryFinder.getFilterFactory(null);
+
+        if (length < 0) {
+            return null;
+        }
+        LengthFunction lengthFunction =
+                (LengthFunction)
+                        filterFactory.function(
+                                "LengthFunction", new Expression[] {filterFactory.property(".")});
+        if (lengthFunction == null) {
+            return null;
+        }
+        Filter cf = null;
+        try {
+            cf = filterFactory.lessOrEqual(lengthFunction, filterFactory.literal(length));
+        } catch (IllegalFilterException e) {
+            // TODO something
+        }
+        return cf == null ? Filter.EXCLUDE : cf;
     }
 
     public void convert(SimpleFeature from, SimpleFeature to) {
@@ -225,7 +272,7 @@ public class FeatureDataConverter {
                         SimpleFeatureTypeBuilder typeBuilder = new SimpleFeatureTypeBuilder();
                         featureTypeName = featureTypeName.substring(0, 45);
                         typeBuilder.setName(featureTypeName);
-                        typeBuilder.addAll(featureType.getAttributeDescriptors());
+                        typeBuilder.addAll(converted.getAttributeDescriptors());
                         converted = typeBuilder.buildFeatureType();
                     }
                     return converted;
