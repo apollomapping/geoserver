@@ -6,8 +6,7 @@ package org.geotools.renderer.lite;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
+import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,7 +111,9 @@ public class VectorMapRenderUtils {
         query.setProperties(Query.ALL_PROPERTIES);
 
         Hints hints = query.getHints();
-        hints.put(Hints.FEATURE_2D, Boolean.TRUE);
+        Object dimension = geometryDescriptor.getUserData().get(Hints.COORDINATE_DIMENSION);
+        if (dimension == null || ((Integer) dimension < 3))
+            hints.put(Hints.FEATURE_2D, Boolean.TRUE);
 
         return query;
     }

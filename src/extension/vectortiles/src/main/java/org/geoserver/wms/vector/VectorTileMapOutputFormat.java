@@ -4,17 +4,7 @@
  */
 package org.geoserver.wms.vector;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.geotools.renderer.lite.VectorMapRenderUtils.getStyleQuery;
-
 import com.google.common.base.Stopwatch;
-import java.awt.Rectangle;
-import java.io.IOException;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.geoserver.platform.ServiceException;
 import org.geoserver.wms.MapProducerCapabilities;
 import org.geoserver.wms.WMS;
@@ -31,15 +21,22 @@ import org.geotools.map.Layer;
 import org.geotools.renderer.lite.VectorMapRenderUtils;
 import org.geotools.util.logging.Logging;
 import org.locationtech.jts.geom.Geometry;
-import org.opengis.feature.Attribute;
-import org.opengis.feature.ComplexAttribute;
-import org.opengis.feature.Feature;
-import org.opengis.feature.GeometryAttribute;
-import org.opengis.feature.Property;
+import org.opengis.feature.*;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+
+import java.awt.*;
+import java.io.IOException;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.geotools.renderer.lite.VectorMapRenderUtils.getStyleQuery;
 
 public class VectorTileMapOutputFormat extends AbstractMapOutputFormat {
 
@@ -202,6 +199,7 @@ public class VectorTileMapOutputFormat extends AbstractMapOutputFormat {
                 Geometry finalGeom;
 
                 originalGeom = (Geometry) feature.getDefaultGeometryProperty().getValue();
+
                 try {
                     finalGeom = pipeline.execute(originalGeom);
                 } catch (Exception processingException) {
@@ -217,6 +215,11 @@ public class VectorTileMapOutputFormat extends AbstractMapOutputFormat {
                 final String geometryName = geometryDescriptor.getName().getLocalPart();
 
                 final Map<String, Object> properties = getProperties(feature);
+
+                double height = originalGeom.getCoordinate().z;
+                if (!Double.isNaN(height)) {
+                    properties.put("tile_3d_height_internal", height);
+                }
 
                 vectorTileBuilder.addFeature(
                         layerName, featureId, geometryName, finalGeom, properties);
