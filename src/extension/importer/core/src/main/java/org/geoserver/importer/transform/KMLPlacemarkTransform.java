@@ -5,10 +5,6 @@
  */
 package org.geoserver.importer.transform;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import org.apache.commons.lang.StringUtils;
 import org.geoserver.importer.FeatureDataConverter;
 import org.geoserver.importer.ImportTask;
@@ -22,6 +18,11 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 public class KMLPlacemarkTransform extends AbstractTransform implements InlineVectorTransform {
 
     /** serialVersionUID */
@@ -29,15 +30,23 @@ public class KMLPlacemarkTransform extends AbstractTransform implements InlineVe
 
     public SimpleFeatureType convertFeatureType(SimpleFeatureType oldFeatureType) {
         SimpleFeatureTypeBuilder ftb = new SimpleFeatureTypeBuilder();
-        ftb.add("Geometry", Geometry.class);
+
         ftb.setDefaultGeometry("Geometry");
         List<AttributeDescriptor> attributeDescriptors = oldFeatureType.getAttributeDescriptors();
+
+        if (oldFeatureType.getDescriptor("Geometry") == null) {
+            ftb.add("Geometry", Geometry.class);
+        } else {
+            ftb.add(oldFeatureType.getDescriptor("Geometry"));
+        }
+
         for (AttributeDescriptor attributeDescriptor : attributeDescriptors) {
             String localName = attributeDescriptor.getLocalName();
             if (!"Geometry".equals(localName)) {
                 ftb.add(attributeDescriptor);
             }
         }
+
         ftb.setName(oldFeatureType.getName());
         ftb.setDescription(oldFeatureType.getDescription());
         ftb.setCRS(KMLFileFormat.KML_CRS);
@@ -47,8 +56,7 @@ public class KMLPlacemarkTransform extends AbstractTransform implements InlineVe
             ftb.remove("Style");
         }
         ftb.add("Folder", String.class);
-        SimpleFeatureType ft = ftb.buildFeatureType();
-        return ft;
+        return ftb.buildFeatureType();
     }
 
     public SimpleFeature convertFeature(SimpleFeature old, SimpleFeatureType targetFeatureType) {
